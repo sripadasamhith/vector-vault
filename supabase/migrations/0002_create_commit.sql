@@ -59,12 +59,17 @@ begin
   ) on commit drop;
   delete from _cc_new_files;
 
+  -- NOTE: every reference to commit_files.commit_id and commits.short_sha
+  -- below MUST be alias-qualified. This function's RETURNS TABLE declares
+  -- OUT parameters named commit_id and short_sha, which otherwise collide
+  -- with those columns and fail at runtime with
+  -- "column reference ... is ambiguous". Do not un-qualify them.
   insert into _cc_new_files (path, sha256)
   select
     coalesce(s.path, p.path) as path,
     case when s.path is not null then s.sha256 else p.sha256 end as sha256
   from (
-    select path, sha256 from commit_files where commit_id = v_head_id
+    select cf.path, cf.sha256 from commit_files cf where cf.commit_id = v_head_id
   ) p
   full outer join (
     select path, sha256 from staged_files
@@ -76,9 +81,9 @@ begin
   select not exists (
     (select path, sha256 from _cc_new_files
      except
-     select path, sha256 from commit_files where commit_id = v_head_id)
+     select cf.path, cf.sha256 from commit_files cf where cf.commit_id = v_head_id)
     union
-    (select path, sha256 from commit_files where commit_id = v_head_id
+    (select cf.path, cf.sha256 from commit_files cf where cf.commit_id = v_head_id
      except
      select path, sha256 from _cc_new_files)
   ) into v_identical;
@@ -103,7 +108,7 @@ begin
   );
   v_short_sha := substr(v_base_hash, 1, 7);
 
-  while exists (select 1 from commits where repo_id = p_repo_id and short_sha = v_short_sha) loop
+  while exists (select 1 from commits c where c.repo_id = p_repo_id and c.short_sha = v_short_sha) loop
     v_suffix := v_suffix + 1;
     v_short_sha := substr(v_base_hash, 1, 7) || v_suffix::text;
   end loop;

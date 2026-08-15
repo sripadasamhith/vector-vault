@@ -6,6 +6,24 @@ into the dashboard. All three files are idempotent (`create table if not exists`
 policy/function if exists` before create), so re-running any of them is safe if something
 goes wrong partway.
 
+## These have been tested
+
+Run `npm run verify:sql` (needs Docker) to apply all three to a throwaway Postgres and
+assert that RLS isolates users and `create_commit()` behaves. 21 assertions, all passing.
+
+Worth knowing why that exists: two bugs in these files applied *cleanly* and failed only on
+first use, so "Success. No rows returned." in the SQL Editor would not have caught either.
+
+1. The original policies queried `repo_members` inside a policy on `repo_members`, and
+   `repos` inside a policy that `repo_members` referenced back. Every query against either
+   table died with `infinite recursion detected in policy`. Fixed with the SECURITY DEFINER
+   helpers at the top of `0003_rls.sql` — read the comment there before editing policies.
+2. `create_commit()` declares OUT params named `commit_id` and `short_sha`, which collided
+   with the identically-named columns. Every call failed with `column reference is
+   ambiguous`. Fixed by alias-qualifying those references.
+
+If you change either file, re-run `npm run verify:sql` before pasting it into the dashboard.
+
 ## Steps
 
 1. Open the Supabase dashboard for this project → **SQL Editor** → **New query**.

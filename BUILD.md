@@ -61,16 +61,19 @@ start with a comment naming its single permitted importer and read
 
 Write `supabase/migrations/0001_init.sql` containing every table from `PLAN.md` §4, verbatim
 column names. Apply it to the Supabase project.
-**verify:** all ten tables exist; `blobs.sha256` is the primary key; `commit_files` has a
-composite PK on `(commit_id, path)`.
+**verify:** `npm run verify:sql` (Docker) applies 0001/0003/0002 to a throwaway Postgres and
+asserts RLS isolation plus `create_commit()` behaviour — 21 assertions. Then apply for real
+per `supabase/APPLY.md` and confirm all ten tables exist in the dashboard.
 
 ### T0.4 RLS policies
 
 Enable RLS on every table. Policies per `ARCHITECTURE.md` §6. `blobs` and `blob_metrics` are
 readable by any authenticated user (they are content-addressed and carry no ownership) but
 insertable only via authenticated sessions.
-**verify:** with RLS on and no policy match, `select * from repos` as an anon key returns 0
-rows rather than an error.
+**verify:** `npm run verify:sql` — it asserts user B sees zero rows of user A's repo, that
+public visibility grants read but not write, and that a `reader` cannot write. Policies must
+use the SECURITY DEFINER helpers in `0003_rls.sql`; inline subqueries over `repos` or
+`repo_members` cause `infinite recursion detected in policy` at query time.
 
 ### T0.5 Auth
 

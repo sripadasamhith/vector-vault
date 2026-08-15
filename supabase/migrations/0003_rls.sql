@@ -10,24 +10,110 @@
 --     request read a share_links row by token — that would duplicate the
 --     share-resolution logic in a second, weaker place. Do not add one.
 --
+-- WHY THE HELPER FUNCTIONS BELOW EXIST — read before editing:
+--
+-- Access checks must NOT be written as inline subqueries over repos or
+-- repo_members inside these policies. Doing so causes Postgres to raise
+-- "infinite recursion detected in policy for relation ...", in two ways:
+--
+--   1. Self-reference: a policy ON repo_members that itself selects FROM
+--      repo_members re-triggers its own policy.
+--   2. Mutual reference: repos_select querying repo_members triggers
+--      repo_members_select, which queries repos, which re-triggers
+--      repos_select.
+--
+-- The fix is the standard one: put the membership lookup in a
+-- SECURITY DEFINER function. Such a function runs as its owner and is not
+-- subject to RLS, so the chain terminates. Every policy below therefore
+-- calls vv_can_read_repo / vv_can_write_repo / vv_is_repo_owner instead of
+-- querying repos or repo_members directly.
+--
+-- If you add a policy, use the helpers. Do not inline the subquery back in.
+--
 -- Idempotent: policies are dropped before being recreated, so this is safe
 -- to re-run. Apply after 0001_init.sql. See supabase/APPLY.md.
+
+-- ---------------------------------------------------------------------
+-- Access helpers (SECURITY DEFINER — bypass RLS, breaking the recursion)
+-- ---------------------------------------------------------------------
+
+create or replace function public.vv_can_read_repo(p_repo_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from repos r
+    where r.id = p_repo_id
+      and (
+        r.owner_id = auth.uid()
+        or r.visibility = 'public'
+        or exists (
+          select 1 from repo_members m
+          where m.repo_id = r.id and m.user_id = auth.uid()
+        )
+      )
+  );
+$$;
+
+create or replace function public.vv_can_write_repo(p_repo_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from repos r
+    where r.id = p_repo_id
+      and (
+        r.owner_id = auth.uid()
+        or exists (
+          select 1 from repo_members m
+          where m.repo_id = r.id
+            and m.user_id = auth.uid()
+            and m.role in ('owner', 'writer')
+        )
+      )
+  );
+$$;
+
+create or replace function public.vv_is_repo_owner(p_repo_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from repos r
+    where r.id = p_repo_id and r.owner_id = auth.uid()
+  );
+$$;
+
+revoke execute on function public.vv_can_read_repo(uuid) from public;
+revoke execute on function public.vv_can_write_repo(uuid) from public;
+revoke execute on function public.vv_is_repo_owner(uuid) from public;
+grant execute on function public.vv_can_read_repo(uuid) to authenticated;
+grant execute on function public.vv_can_write_repo(uuid) to authenticated;
+grant execute on function public.vv_is_repo_owner(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------
 -- repos
 -- ---------------------------------------------------------------------
 alter table repos enable row level security;
 
+-- owner_id / visibility are columns of the row being checked, so testing
+-- them directly is safe — it is only the repo_members lookup that recurses.
 drop policy if exists repos_select on repos;
 create policy repos_select on repos for select
   to authenticated
   using (
     owner_id = auth.uid()
     or visibility = 'public'
-    or exists (
-      select 1 from repo_members m
-      where m.repo_id = repos.id and m.user_id = auth.uid()
-    )
+    or vv_can_read_repo(id)
   );
 
 drop policy if exists repos_insert on repos;
@@ -56,14 +142,7 @@ create policy repo_members_select on repo_members for select
   to authenticated
   using (
     user_id = auth.uid()
-    or exists (
-      select 1 from repos r
-      where r.id = repo_members.repo_id and r.owner_id = auth.uid()
-    )
-    or exists (
-      select 1 from repo_members m2
-      where m2.repo_id = repo_members.repo_id and m2.user_id = auth.uid()
-    )
+    or vv_can_read_repo(repo_id)
   );
 
 -- Owner-only membership management. This also covers the initial 'owner'
@@ -72,39 +151,18 @@ create policy repo_members_select on repo_members for select
 drop policy if exists repo_members_insert on repo_members;
 create policy repo_members_insert on repo_members for insert
   to authenticated
-  with check (
-    exists (
-      select 1 from repos r
-      where r.id = repo_members.repo_id and r.owner_id = auth.uid()
-    )
-  );
+  with check (vv_is_repo_owner(repo_id));
 
 drop policy if exists repo_members_update on repo_members;
 create policy repo_members_update on repo_members for update
   to authenticated
-  using (
-    exists (
-      select 1 from repos r
-      where r.id = repo_members.repo_id and r.owner_id = auth.uid()
-    )
-  )
-  with check (
-    exists (
-      select 1 from repos r
-      where r.id = repo_members.repo_id and r.owner_id = auth.uid()
-    )
-  );
+  using (vv_is_repo_owner(repo_id))
+  with check (vv_is_repo_owner(repo_id));
 
 drop policy if exists repo_members_delete on repo_members;
 create policy repo_members_delete on repo_members for delete
   to authenticated
-  using (
-    user_id = auth.uid()
-    or exists (
-      select 1 from repos r
-      where r.id = repo_members.repo_id and r.owner_id = auth.uid()
-    )
-  );
+  using (user_id = auth.uid() or vv_is_repo_owner(repo_id));
 
 -- ---------------------------------------------------------------------
 -- branches
@@ -114,47 +172,13 @@ alter table branches enable row level security;
 drop policy if exists branches_select on branches;
 create policy branches_select on branches for select
   to authenticated
-  using (
-    exists (
-      select 1 from repos r
-      where r.id = branches.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or r.visibility = 'public'
-          or exists (select 1 from repo_members m where m.repo_id = r.id and m.user_id = auth.uid())
-        )
-    )
-  );
+  using (vv_can_read_repo(repo_id));
 
 drop policy if exists branches_write on branches;
 create policy branches_write on branches for all
   to authenticated
-  using (
-    exists (
-      select 1 from repos r
-      where r.id = branches.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or exists (
-            select 1 from repo_members m
-            where m.repo_id = r.id and m.user_id = auth.uid() and m.role in ('owner', 'writer')
-          )
-        )
-    )
-  )
-  with check (
-    exists (
-      select 1 from repos r
-      where r.id = branches.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or exists (
-            select 1 from repo_members m
-            where m.repo_id = r.id and m.user_id = auth.uid() and m.role in ('owner', 'writer')
-          )
-        )
-    )
-  );
+  using (vv_can_write_repo(repo_id))
+  with check (vv_can_write_repo(repo_id));
 
 -- ---------------------------------------------------------------------
 -- tags
@@ -164,86 +188,30 @@ alter table tags enable row level security;
 drop policy if exists tags_select on tags;
 create policy tags_select on tags for select
   to authenticated
-  using (
-    exists (
-      select 1 from repos r
-      where r.id = tags.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or r.visibility = 'public'
-          or exists (select 1 from repo_members m where m.repo_id = r.id and m.user_id = auth.uid())
-        )
-    )
-  );
+  using (vv_can_read_repo(repo_id));
 
 drop policy if exists tags_write on tags;
 create policy tags_write on tags for all
   to authenticated
-  using (
-    exists (
-      select 1 from repos r
-      where r.id = tags.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or exists (
-            select 1 from repo_members m
-            where m.repo_id = r.id and m.user_id = auth.uid() and m.role in ('owner', 'writer')
-          )
-        )
-    )
-  )
-  with check (
-    exists (
-      select 1 from repos r
-      where r.id = tags.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or exists (
-            select 1 from repo_members m
-            where m.repo_id = r.id and m.user_id = auth.uid() and m.role in ('owner', 'writer')
-          )
-        )
-    )
-  );
+  using (vv_can_write_repo(repo_id))
+  with check (vv_can_write_repo(repo_id));
 
 -- ---------------------------------------------------------------------
--- commits
+-- commits — immutable once written
 -- ---------------------------------------------------------------------
 alter table commits enable row level security;
 
 drop policy if exists commits_select on commits;
 create policy commits_select on commits for select
   to authenticated
-  using (
-    exists (
-      select 1 from repos r
-      where r.id = commits.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or r.visibility = 'public'
-          or exists (select 1 from repo_members m where m.repo_id = r.id and m.user_id = auth.uid())
-        )
-    )
-  );
+  using (vv_can_read_repo(repo_id));
 
--- Inserted only from inside create_commit() (SECURITY INVOKER), so this
--- still needs to allow write-access users through.
+-- Inserted from inside create_commit() (SECURITY INVOKER), so this still
+-- has to admit write-access users.
 drop policy if exists commits_insert on commits;
 create policy commits_insert on commits for insert
   to authenticated
-  with check (
-    exists (
-      select 1 from repos r
-      where r.id = commits.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or exists (
-            select 1 from repo_members m
-            where m.repo_id = r.id and m.user_id = auth.uid() and m.role in ('owner', 'writer')
-          )
-        )
-    )
-  );
+  with check (vv_can_write_repo(repo_id));
 
 -- No update/delete policy: commits are immutable. Repo deletion cascades
 -- via the foreign key, which is not subject to RLS.
@@ -259,13 +227,8 @@ create policy commit_files_select on commit_files for select
   using (
     exists (
       select 1 from commits c
-      join repos r on r.id = c.repo_id
       where c.id = commit_files.commit_id
-        and (
-          r.owner_id = auth.uid()
-          or r.visibility = 'public'
-          or exists (select 1 from repo_members m where m.repo_id = r.id and m.user_id = auth.uid())
-        )
+        and vv_can_read_repo(c.repo_id)
     )
   );
 
@@ -275,54 +238,21 @@ create policy commit_files_insert on commit_files for insert
   with check (
     exists (
       select 1 from commits c
-      join repos r on r.id = c.repo_id
       where c.id = commit_files.commit_id
-        and (
-          r.owner_id = auth.uid()
-          or exists (
-            select 1 from repo_members m
-            where m.repo_id = r.id and m.user_id = auth.uid() and m.role in ('owner', 'writer')
-          )
-        )
+        and vv_can_write_repo(c.repo_id)
     )
   );
 
 -- ---------------------------------------------------------------------
--- staged_files — per user, per branch
+-- staged_files — per user, per branch. A user only ever sees their own.
 -- ---------------------------------------------------------------------
 alter table staged_files enable row level security;
 
 drop policy if exists staged_files_all on staged_files;
 create policy staged_files_all on staged_files for all
   to authenticated
-  using (
-    user_id = auth.uid()
-    and exists (
-      select 1 from repos r
-      where r.id = staged_files.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or exists (
-            select 1 from repo_members m
-            where m.repo_id = r.id and m.user_id = auth.uid() and m.role in ('owner', 'writer')
-          )
-        )
-    )
-  )
-  with check (
-    user_id = auth.uid()
-    and exists (
-      select 1 from repos r
-      where r.id = staged_files.repo_id
-        and (
-          r.owner_id = auth.uid()
-          or exists (
-            select 1 from repo_members m
-            where m.repo_id = r.id and m.user_id = auth.uid() and m.role in ('owner', 'writer')
-          )
-        )
-    )
-  );
+  using (user_id = auth.uid() and vv_can_write_repo(repo_id))
+  with check (user_id = auth.uid() and vv_can_write_repo(repo_id));
 
 -- ---------------------------------------------------------------------
 -- blobs / blob_metrics — content-addressed, no ownership. Any
@@ -362,29 +292,14 @@ alter table share_links enable row level security;
 drop policy if exists share_links_select on share_links;
 create policy share_links_select on share_links for select
   to authenticated
-  using (
-    exists (
-      select 1 from repos r
-      where r.id = share_links.repo_id and r.owner_id = auth.uid()
-    )
-  );
+  using (vv_is_repo_owner(repo_id));
 
 drop policy if exists share_links_insert on share_links;
 create policy share_links_insert on share_links for insert
   to authenticated
-  with check (
-    exists (
-      select 1 from repos r
-      where r.id = share_links.repo_id and r.owner_id = auth.uid()
-    )
-  );
+  with check (vv_is_repo_owner(repo_id));
 
 drop policy if exists share_links_delete on share_links;
 create policy share_links_delete on share_links for delete
   to authenticated
-  using (
-    exists (
-      select 1 from repos r
-      where r.id = share_links.repo_id and r.owner_id = auth.uid()
-    )
-  );
+  using (vv_is_repo_owner(repo_id));
