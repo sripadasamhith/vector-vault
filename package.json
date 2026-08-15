@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "check-env": "node scripts/check-env.mjs"
+    "check-env": "node scripts/check-env.mjs",
+    "verify:phase0": "node scripts/verify-phase0.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
