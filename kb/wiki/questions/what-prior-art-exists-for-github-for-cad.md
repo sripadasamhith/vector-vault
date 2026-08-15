@@ -86,3 +86,4 @@ is aiming at, and the wiki should be honest that it is the empty one for a reaso
 - [[ecad-mcad-versioning-asymmetry]] — the explanation for the pattern
 - [[geometry-diffing]] — the capability that separates the tiers
 - [[who-pays-for-cad-collaboration]] — why the empty cell is empty
+- [[what-should-we-build-first]] — reading `diff3d` and surveying GrabCAD, promoted to actions

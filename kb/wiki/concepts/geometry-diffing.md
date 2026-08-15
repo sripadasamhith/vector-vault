@@ -107,3 +107,4 @@ AllSpice has portability but works on 2D-projectable artifacts.
 - [[parametric-feature-history]] — the semantic ceiling
 - [[ecad-mcad-versioning-asymmetry]] — why electronics got here first
 - [[what-is-the-right-primary-artifact]] — what to diff
+- [[what-should-we-build-first]] — where approach 3 sits in the build order, and the traps it carries forward

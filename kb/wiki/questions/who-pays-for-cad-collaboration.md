@@ -96,3 +96,4 @@ actionable conclusion, and is currently the most plausible reading. See
 - [[allspice]] — the positive case
 - [[pdm-and-plm]] — who already holds the budget
 - [[remix-graphs-vs-version-control]] — the segment with volume but no money
+- [[what-should-we-build-first]] — where user contact sits in the build order, and the objection that it should come first

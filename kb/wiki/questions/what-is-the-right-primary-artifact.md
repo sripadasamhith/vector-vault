@@ -83,3 +83,4 @@ decisive constraint.
 - [[geometry-diffing]] — what you can compute per artifact choice
 - [[neutral-exchange-formats]] — the fidelity ladder
 - [[parametric-feature-history]] — the unreachable top of the ladder
+- [[what-should-we-build-first]] — the sequenced experiments that would answer this

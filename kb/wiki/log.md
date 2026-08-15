@@ -67,3 +67,27 @@ lock-in why sharing is hard?" Answered in conversation first, then ingested.
   Upchain, Duro, Wikifactory, Ganister not surveyed; consumer platforms unsourced; Autodesk
   and Dassault cloud-posture claims marked `(unsourced)`; `bdlucas1/diff3d` identified as
   the single highest-value unread source; no user contact at all.
+
+## [2026-08-15] query | summary of the "GitHub for CAD" concept and what to do about it
+
+Query answered from the wiki; no new sources read. Answer filed rather than left in chat.
+
+- **Read to answer:** [[index]], [[overview]], [[cad-files-as-compiled-artifacts]],
+  [[geometry-diffing]], [[what-is-the-right-primary-artifact]],
+  [[who-pays-for-cad-collaboration]], [[what-prior-art-exists-for-github-for-cad]],
+  [[ecad-mcad-versioning-asymmetry]].
+- **Created [[what-should-we-build-first]]** — the sequencing question. Collects the four
+  scattered `What would settle this` sections into one ordered list: read `bdlucas1/diff3d`,
+  run the signed-distance-field experiment, talk to five users across segments, verify the
+  Ondsel tool-switch confound, survey GrabCAD Workbench. Carries the registration and
+  re-tessellation traps forward from [[geometry-diffing]] so they aren't rediscovered.
+- **Objection recorded on that page rather than resolved:** the ranking puts two reading
+  tasks and an experiment ahead of user contact, which is arguably backwards given that
+  segment choice is what killed [[ondsel]]. Logged as a live disagreement.
+- **Updated [[index]]** (new Questions entry) and **[[overview]]** (open questions list).
+- **Added inbound links** from [[what-is-the-right-primary-artifact]], [[geometry-diffing]],
+  [[who-pays-for-cad-collaboration]], and [[what-prior-art-exists-for-github-for-cad]] so
+  the new page is not an orphan.
+- **No new claims introduced.** The page is synthesis over existing pages; `sources:` lists
+  the pages it was built from, not raw sources. Confidence low on the ordering, medium on
+  the individual items.

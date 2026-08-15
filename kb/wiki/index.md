@@ -40,6 +40,7 @@ number of sources backing it in parentheses.
 - [[who-pays-for-cad-collaboration]] — **highest-risk open question.** Unresolved; willingness to pay appears inverted across segments. (4 sources)
 - [[what-is-the-right-primary-artifact]] — STL, STEP, native, feature tree, or a derived representation? Open; derived-representation hypothesis leading. (3 sources)
 - [[what-prior-art-exists-for-github-for-cad]] — six tiers of prior art; cross-platform mechanical is the empty cell. (6 sources)
+- [[what-should-we-build-first]] — the ordered next-actions list: read `diff3d`, run the SDF experiment, talk to five users. Synthesized, not sourced. (6 pages)
 
 ## Entities
 

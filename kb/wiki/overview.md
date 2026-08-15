@@ -82,6 +82,7 @@ without computing something new on top.
 - [[who-pays-for-cad-collaboration]] — **the highest-risk question.** Unresolved.
 - [[what-is-the-right-primary-artifact]] — the core product decision. Open.
 - [[what-prior-art-exists-for-github-for-cad]] — survey, one pass deep, incomplete.
+- [[what-should-we-build-first]] — the sequencing question. What the above implies for Monday.
 
 ## Contradictions and tensions
 
