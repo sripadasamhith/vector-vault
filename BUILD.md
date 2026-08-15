@@ -53,9 +53,9 @@ Add to `package.json`: `"test": "vitest run"`.
 
 Create `lib/supabase/{client,server,admin}.ts` per `ARCHITECTURE.md` §2. `admin.ts` must
 start with a comment naming its single permitted importer and read
-`SUPABASE_SERVICE_ROLE_KEY`. Add `.env.local` with the four vars from `PLAN.md` §11 and
+`SUPABASE_SECRET_KEY`. Add `.env.local` with the four vars from `PLAN.md` §11 and
 `.env.example` with the same keys, values blank.
-**verify:** `grep -rn "SERVICE_ROLE" app/ lib/` returns only `lib/supabase/admin.ts`.
+**verify:** `grep -rn "SUPABASE_SECRET_KEY" app/ lib/` returns only `lib/supabase/admin.ts`.
 
 ### T0.3 Schema migration
 
