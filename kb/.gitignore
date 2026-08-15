@@ -21,3 +21,6 @@ raw/**/*.sqlite
 *.tmp
 .venv/
 node_modules/
+
+
+.DS_Store
