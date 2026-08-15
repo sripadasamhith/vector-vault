@@ -1,0 +1,18 @@
+{
+  "attachmentFolderPath": "raw/assets",
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "alwaysUpdateLinks": true,
+  "showUnsupportedFiles": true,
+  "promptDelete": true,
+  "trashOption": "local",
+  "newFileLocation": "folder",
+  "newFileFolderPath": "wiki",
+  "defaultViewMode": "preview",
+  "livePreview": true,
+  "readableLineLength": true,
+  "strictLineBreaks": false,
+  "userIgnoreFilters": [
+    "templates/"
+  ]
+}

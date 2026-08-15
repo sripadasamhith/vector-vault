@@ -1,0 +1,23 @@
+# Obsidian workspace state — per-machine, noisy. Shared settings in .obsidian/app.json
+# and .obsidian/core-plugins.json ARE committed; see docs/obsidian-setup.md.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.obsidian/plugins/*/data.json
+.trash/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large binaries in raw/ — keep a stub .md noting what and where they are
+raw/**/*.mp4
+raw/**/*.mov
+raw/**/*.zip
+raw/**/*.parquet
+raw/**/*.sqlite
+
+# Scratch
+*.tmp
+.venv/
+node_modules/
