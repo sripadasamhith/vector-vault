@@ -1,0 +1,52 @@
+# Applying migrations — do this by hand
+
+The Supabase CLI is not installed in this environment and there is no DB password or access
+token available, so these files cannot be applied automatically. A human has to paste them
+into the dashboard. All three files are idempotent (`create table if not exists`, `drop
+policy/function if exists` before create), so re-running any of them is safe if something
+goes wrong partway.
+
+## Steps
+
+1. Open the Supabase dashboard for this project → **SQL Editor** → **New query**.
+2. Paste the entire contents of `supabase/migrations/0001_init.sql`, click **Run**.
+   - **Expect:** "Success. No rows returned." Ten tables now exist: `blobs`, `blob_metrics`,
+     `repos`, `commits`, `commit_files`, `branches`, `tags`, `staged_files`, `share_links`,
+     `repo_members`.
+   - Sanity check afterward, in a new query:
+     ```sql
+     select table_name from information_schema.tables
+     where table_schema = 'public' order by 1;
+     ```
+     should list all ten.
+3. New query. Paste all of `supabase/migrations/0003_rls.sql`, click **Run**.
+   - **Expect:** "Success. No rows returned." RLS is now enabled on every table above.
+   - **Run this before 0002** — the `create_commit()` function inserts into RLS-protected
+     tables, and it's safer to have the policies in place before anyone can call it.
+   - Sanity check:
+     ```sql
+     select tablename, rowsecurity from pg_tables
+     where schemaname = 'public' order by 1;
+     ```
+     `rowsecurity` should be `true` for all ten.
+4. New query. Paste all of `supabase/migrations/0002_create_commit.sql`, click **Run**.
+   - **Expect:** "Success. No rows returned." A function `create_commit(uuid, text, text,
+     uuid)` now exists.
+   - Sanity check:
+     ```sql
+     select proname, pronargs from pg_proc where proname = 'create_commit';
+     ```
+     should return one row with `pronargs = 4`.
+5. Create the `designs` Storage bucket (T1.2, not this task, but do it now if convenient):
+   dashboard → **Storage** → **New bucket** → name `designs`, **private**, file size limit
+   500 MB. Not required for `verify:phase0` to pass, since that script only exercises
+   `repos`/`commits`/RLS.
+
+## After applying
+
+Run `npm run verify:phase0` from the repo root. It creates two throwaway users, asserts one
+cannot see or write into the other's repo, and deletes both users on the way out. It is the
+actual Phase 0 exit gate — see `BUILD.md`.
+
+If it fails with a Postgres error mentioning a missing table or function, one of the three
+files above didn't get applied — re-run it (safe, idempotent) and try again.
