@@ -55,6 +55,19 @@ If you change either file, re-run `npm run verify:sql` before pasting it into th
      select proname, pronargs from pg_proc where proname = 'create_commit';
      ```
      should return one row with `pronargs = 4`.
+   - **RE-APPLY REQUIRED if you applied this file before 2026-08-16.** The version
+     originally applied cleared its working temp table with `delete from _cc_new_files;`
+     (no WHERE clause). This project's Postgres rejects unqualified DELETEs with
+     `"DELETE requires a WHERE clause"` — a guard the original smoke test (probing
+     `create_commit()` with a nonexistent branch, expecting `P0002`) never reached,
+     because that path raises before the first temp-table clear. **Every real commit
+     hits it and fails.** Confirmed live while building T1.5: staging a file and calling
+     `POST /api/repos/:id/commits` returned `400 {"error":{"message":"DELETE requires a
+     WHERE clause"}}`, and zero rows were written to `commits`. Fixed by switching all
+     three clears to `truncate _cc_new_files;` — re-running this file (`create or
+     replace`, safe) picks up the fix with no signature change. **This is the single
+     highest-priority manual step outstanding** — nothing in Phase 1 that commits can be
+     demoed until it's re-applied.
 5. Create the `designs` Storage bucket (T1.2, not this task, but do it now if convenient):
    dashboard → **Storage** → **New bucket** → name `designs`, **private**, file size limit
    500 MB. Not required for `verify:phase0` to pass, since that script only exercises

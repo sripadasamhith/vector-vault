@@ -3,6 +3,7 @@
 // for T0.6's dashboard; grows as later tasks add routes.
 import type { ApiResponse } from './api/envelope';
 import type { Repo } from './domain/repos';
+import type { Commit } from './domain/commits';
 
 async function request<T>(input: string, init?: RequestInit): Promise<ApiResponse<T>> {
   const res = await fetch(input, {
@@ -64,5 +65,22 @@ export function stageRemoval(repoId: string, params: { path: string; branch?: st
   return request<{ staged: true; path: string; branch: string; removal: true }>(
     `/api/repos/${repoId}/stage`,
     { method: 'DELETE', body: JSON.stringify(params) }
+  );
+}
+
+export function commit(repoId: string, params: { message: string; branch?: string }) {
+  return request<{ commitId: string; shortSha: string; branch: string }>(
+    `/api/repos/${repoId}/commits`,
+    { method: 'POST', body: JSON.stringify(params) }
+  );
+}
+
+export function listCommits(repoId: string, params?: { branch?: string; limit?: number }) {
+  const query = new URLSearchParams();
+  if (params?.branch) query.set('branch', params.branch);
+  if (params?.limit) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  return request<{ commits: Commit[]; branch: string }>(
+    `/api/repos/${repoId}/commits${qs ? `?${qs}` : ''}`
   );
 }

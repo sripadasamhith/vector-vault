@@ -1,11 +1,11 @@
 // T1.4 (BUILD.md) / ARCHITECTURE.md §4 step 4. Writer-only: staging changes
 // requires at least `writer` role. Parses/validates and delegates to
 // lib/domain/staging.ts — no query logic here per the layering rule.
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api/envelope';
 import { requireRepoRole } from '@/lib/api/guard';
 import { stageFile, stageRemoval } from '@/lib/domain/staging';
+import { getDefaultBranch } from '@/lib/domain/repos';
 
 const SHA256_RE = /^[0-9a-f]{64}$/;
 const KNOWN_FORMATS = ['stl', 'obj', '3mf', 'step', 'iges', 'native', 'unknown'] as const;
@@ -38,20 +38,6 @@ const unstageSchema = z.object({
   branch: z.string().min(1).max(255).optional(),
 });
 
-async function resolveBranch(
-  supabase: SupabaseClient,
-  repoId: string,
-  requested: string | undefined
-): Promise<string> {
-  if (requested) return requested;
-  const { data } = await supabase
-    .from('repos')
-    .select('default_branch')
-    .eq('id', repoId)
-    .maybeSingle();
-  return data?.default_branch ?? 'main';
-}
-
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: repoId } = await params;
   const auth = await requireRepoRole(repoId, 'writer');
@@ -63,7 +49,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return fail('invalid_input', parsed.error.issues[0]?.message ?? 'Invalid input.');
   }
 
-  const branch = await resolveBranch(auth.supabase, repoId, parsed.data.branch);
+  const branch = parsed.data.branch ?? (await getDefaultBranch(auth.supabase, repoId));
 
   const result = await stageFile(auth.supabase, {
     repoId,
@@ -93,7 +79,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return fail('invalid_input', parsed.error.issues[0]?.message ?? 'Invalid input.');
   }
 
-  const branch = await resolveBranch(auth.supabase, repoId, parsed.data.branch);
+  const branch = parsed.data.branch ?? (await getDefaultBranch(auth.supabase, repoId));
 
   const result = await stageRemoval(auth.supabase, {
     repoId,

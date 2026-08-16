@@ -9,6 +9,18 @@
 -- 0003_rls.sql's policies exist (order doesn't strictly matter for the
 -- function to be *created*, but it needs RLS in place to be safe to *call*).
 -- See supabase/APPLY.md.
+--
+-- BUG FOUND DURING T1.5 LIVE VERIFICATION (fixed here, needs re-apply): the
+-- version originally applied used `delete from _cc_new_files;` (no WHERE
+-- clause) to clear the working temp table. This project's Postgres rejects
+-- unqualified DELETEs with "DELETE requires a WHERE clause" — a guard the
+-- original P0002 smoke test (probing with a nonexistent branch) never
+-- reached, because that path raises before the first temp-table clear.
+-- Every real commit hit it. Fixed by switching all three clears to
+-- `truncate _cc_new_files;`, which isn't subject to the same guard and is
+-- also just the more idiomatic way to empty a temp table. Re-run this whole
+-- file (safe, `create or replace`) to pick up the fix — the function
+-- signature is unchanged.
 
 drop function if exists create_commit(uuid, text, text, uuid);
 
@@ -57,7 +69,7 @@ begin
     path text primary key,
     sha256 text
   ) on commit drop;
-  delete from _cc_new_files;
+  truncate _cc_new_files;
 
   -- NOTE: every reference to commit_files.commit_id and commits.short_sha
   -- below MUST be alias-qualified. This function's RETURNS TABLE declares
@@ -89,7 +101,7 @@ begin
   ) into v_identical;
 
   if v_identical then
-    delete from _cc_new_files;
+    truncate _cc_new_files;
     raise exception 'nothing_staged';
   end if;
 
@@ -126,7 +138,7 @@ begin
   delete from staged_files
   where repo_id = p_repo_id and user_id = p_author and branch = p_branch;
 
-  delete from _cc_new_files;
+  truncate _cc_new_files;
 
   return query select v_new_commit_id, v_short_sha;
 end;

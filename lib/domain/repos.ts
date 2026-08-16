@@ -69,6 +69,17 @@ export async function createRepo(
   return { ok: true, repo: repo as Repo };
 }
 
+/** The repo's configured default branch — used to resolve an omitted
+ * `branch` param on staging/commit routes to something real. */
+export async function getDefaultBranch(supabase: SupabaseClient, repoId: string): Promise<string> {
+  const { data } = await supabase
+    .from('repos')
+    .select('default_branch')
+    .eq('id', repoId)
+    .maybeSingle();
+  return data?.default_branch ?? 'main';
+}
+
 /** Repos owned by this user, newest first. */
 export async function listOwnedRepos(supabase: SupabaseClient, ownerId: string): Promise<Repo[]> {
   const { data, error } = await supabase
