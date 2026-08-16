@@ -33,3 +33,36 @@ export function signUpload(params: { sha256: string; filename: string; size: num
     body: JSON.stringify(params),
   });
 }
+
+export interface StageMetricsInput {
+  format: string;
+  triangleCount: number | null;
+  volumeMm3: number | null;
+  surfaceAreaMm2: number | null;
+  bbox: { min: [number, number, number]; max: [number, number, number] } | null;
+  centroid: [number, number, number] | null;
+  isWatertight: boolean | null;
+}
+
+export function stageFile(
+  repoId: string,
+  params: {
+    path: string;
+    sha256: string;
+    size: number;
+    branch?: string;
+    metrics?: StageMetricsInput | null;
+  }
+) {
+  return request<{ staged: true; path: string; branch: string }>(`/api/repos/${repoId}/stage`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export function stageRemoval(repoId: string, params: { path: string; branch?: string }) {
+  return request<{ staged: true; path: string; branch: string; removal: true }>(
+    `/api/repos/${repoId}/stage`,
+    { method: 'DELETE', body: JSON.stringify(params) }
+  );
+}
