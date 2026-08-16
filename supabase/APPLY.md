@@ -59,6 +59,23 @@ If you change either file, re-run `npm run verify:sql` before pasting it into th
    dashboard → **Storage** → **New bucket** → name `designs`, **private**, file size limit
    500 MB. Not required for `verify:phase0` to pass, since that script only exercises
    `repos`/`commits`/RLS.
+6. New query. Paste all of `supabase/migrations/0004_storage_policies.sql`, click **Run**.
+   - **Expect:** "Success. No rows returned." Two policies now exist on `storage.objects`
+     scoped to `bucket_id = 'designs'`.
+   - **Required before T1.2/T1.3 work.** Without this, `storage.createSignedUploadUrl()`
+     fails for every authenticated user with `"new row violates row-level security policy"`
+     — a private bucket with zero object policies denies inserts outright, verified live
+     against this project. Confirmed independently: signing in as a real user and calling
+     `POST /storage/v1/object/upload/sign/designs/<path>` returned
+     `403 {"error":"Unauthorized","message":"new row violates row-level security policy"}`
+     before this migration existed.
+   - Sanity check:
+     ```sql
+     select policyname, cmd from pg_policies
+     where schemaname = 'storage' and tablename = 'objects';
+     ```
+     should list `designs_authenticated_insert` (INSERT) and `designs_authenticated_select`
+     (SELECT).
 
 ## After applying
 

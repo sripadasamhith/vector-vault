@@ -22,3 +22,14 @@ export function createRepo(params: { slug: string; name: string; description?: s
 export function listRepos() {
   return request<{ repos: Repo[] }>('/api/repos');
 }
+
+export type SignUploadResponse =
+  | { alreadyExists: true }
+  | { alreadyExists: false; signedUrl: string; token: string; path: string };
+
+export function signUpload(params: { sha256: string; filename: string; size: number }) {
+  return request<SignUploadResponse>('/api/uploads/sign', {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
