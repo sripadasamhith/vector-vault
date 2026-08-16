@@ -23,7 +23,7 @@ Units are millimetres. Volume is `null` for non-watertight meshes by definition
 | `open-shell.stl` | binary | 10 | **null** | 2000 | 20×20×20 | **no** | 584 |
 | `bracket-v1.stl` | binary | 12 | 38400 | 9280 | 80×40×12 | yes | 684 |
 | `bracket-v2.stl` | binary | 12 | 32000 | 8800 | 80×40×10 | yes | 684 |
-| `large.stl` | binary | 1,077,840 | 523590.66 | 31415.68 | 100×100×100 | yes | 53,892,084 |
+| `large.stl` | binary | 943,110 | 523589.75 | 31415.66 | 100×100×100 | yes | 47,155,584 |
 | `part.step` | text | — | — | — | — | — | 415 |
 | `part.sldprt` | binary | — | — | — | — | — | 2,056 |
 
@@ -57,9 +57,14 @@ the specific failure this fixture exists to catch.
 10 mm. Volume 38400 → 32000 mm³ (−16.67%), area 9280 → 8800 mm² (−5.17%), bbox Z 12 → 10.
 Used for the compare view in T3.3; every delta row should be populated and marked significant.
 
-**`large.stl`** — a 1.08M-triangle sphere, 51.4 MiB. Two jobs: prove the direct-to-storage
+**`large.stl`** — a 943k-triangle sphere, **45.0 MiB**. Two jobs: prove the direct-to-storage
 upload path in T1.3 (well past Vercel's ~4.5 MB body cap) and prove the Web Worker keeps the
 UI responsive in T2.4. Not committed to git — regenerate it locally.
+
+Sized at 45 MiB deliberately. The Supabase **free plan caps uploads at 50 MiB globally** —
+verified live: `PUT /storage/v1/bucket/designs` with a 500 MB limit returns
+`413 EntityTooLarge`, and the bucket stays at 50 MiB. A larger fixture would fail to upload
+for platform reasons and look like an app bug.
 
 **`part.step`** — a minimal but syntactically valid STEP AP203 file. Exercises C4: it must
 store, version, share, and download, and must show "preview unavailable" rather than erroring.

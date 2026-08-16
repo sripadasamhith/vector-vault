@@ -112,5 +112,6 @@ assert abs(m5["volume"] - 38400) < 1 and abs(m6["volume"] - 32000) < 1
 print(f"OK  bracket v1->v2  volume {m5['volume']:.0f} -> {m6['volume']:.0f} mm3 "
       f"({(m6['volume']/m5['volume']-1)*100:.2f}%)")
 
-assert (OUT / "large.stl").stat().st_size > 50 * 1024 * 1024
-print("OK  large.stl  >50MB")
+sz = (OUT / "large.stl").stat().st_size
+assert 40 * 1024 * 1024 < sz < 50 * 1024 * 1024, sz
+print(f"OK  large.stl  {sz/1048576:.1f} MiB (>40, under the 50 MiB Supabase free-plan cap)")

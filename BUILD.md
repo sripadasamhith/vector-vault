@@ -112,7 +112,7 @@ uses both.
 
 ### T1.2 Storage bucket + signed upload
 
-Create the private `designs` bucket (500 MB object limit). Build
+The private `designs` bucket already exists (50 MiB object limit — the free-plan ceiling; see `PLAN.md` §11). Build
 `app/api/uploads/sign/route.ts`: input `{ sha256, filename, size }`; if the blob already
 exists return `{ alreadyExists: true }`; otherwise `createSignedUploadUrl` at path
 `blobs/<sha256>` and return `{ signedUrl, token, path }`.
@@ -203,7 +203,7 @@ triangle-area sum, bbox, area-weighted centroid, watertightness via the quantize
 `lib/mesh/worker.ts` + `useMeshWorker.ts`. Instantiate with
 `new Worker(new URL('./worker.ts', import.meta.url))`. Transfer the positions buffer rather
 than copying. Wire the dropzone to compute metrics before staging.
-**verify:** upload `large.stl` (>50 MB) — the UI stays responsive (scrolling and typing work
+**verify:** upload `large.stl` (45 MiB) — the UI stays responsive (scrolling and typing work
 during the parse).
 
 ### T2.5 Viewer

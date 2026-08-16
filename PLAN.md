@@ -382,7 +382,14 @@ SUPABASE_SECRET_KEY     # server-only; share-link reads. Never NEXT_PUBLIC_.
 NEXT_PUBLIC_APP_URL
 ```
 
-Supabase Storage bucket `designs`, **private**, with a 500 MB per-object limit.
+Supabase Storage bucket `designs`, **private**.
+
+Per-object limit: **50 MiB**, not the 500 MB originally planned. The Supabase free plan
+enforces a global 50 MiB upload ceiling; raising the bucket above it returns
+`413 EntityTooLarge` (verified live). This is enough for T1.3's 40 MB gate, which is what
+actually matters — it still proves files bypass Vercel's ~4.5 MB body cap. Real CAD
+assemblies will exceed 50 MiB, so a paid plan is a prerequisite for real use, not a
+nice-to-have.
 
 ---
 

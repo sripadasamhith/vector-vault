@@ -122,8 +122,10 @@ write_binary_stl(OUT / "bracket-v1.stl", box_tris(80, 40, 12), header=b"bracket 
 write_binary_stl(OUT / "bracket-v2.stl", box_tris(80, 40, 10), header=b"bracket v2")
 
 # --- 7. large.stl -----------------------------------------------------------
-# UV sphere, r=50mm. Sized past 50MB to exercise the upload path and the worker.
-LAT, LON, R = 500, 1080, 50.0
+# UV sphere, r=50mm. ~45 MiB: large enough to exercise the direct-to-Storage
+# upload path and the Web Worker, but under the Supabase free-plan 50 MiB
+# per-object ceiling (verified live: the bucket cannot be raised above it).
+LAT, LON, R = 500, 945, 50.0
 def sph(i, j):
     theta = math.pi * i / LAT
     phi = 2 * math.pi * j / LON
