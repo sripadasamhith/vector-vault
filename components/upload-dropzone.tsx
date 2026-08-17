@@ -86,6 +86,16 @@ interface UploadDropzoneProps {
   disabled?: boolean;
 }
 
+
+/**
+ * A storage write that failed only because the object is already there.
+ * Benign for content-addressed paths: blobs/<sha256> can only ever hold
+ * these exact bytes.
+ */
+function isAlreadyExists(message: string): boolean {
+  return /already exists|duplicate|resource already/i.test(message);
+}
+
 export function UploadDropzone({ onUploaded, disabled }: UploadDropzoneProps) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -130,9 +140,6 @@ export function UploadDropzone({ onUploaded, disabled }: UploadDropzoneProps) {
 
           update({ phase: 'uploading' });
           const supabase = createClient();
-          const { error: uploadError } = await supabase.storage
-            .from('designs')
-            .uploadToSignedUrl(signResult.data.path, signResult.data.token, file);
 
           // "The resource already exists" is benign here and must NOT abort.
           // Storage paths are the content hash (blobs/<sha256>), so an object
@@ -144,11 +151,23 @@ export function UploadDropzone({ onUploaded, disabled }: UploadDropzoneProps) {
           // row. `alreadyExists` is answered from the table, so the next
           // attempt signs a fresh upload, the PUT 409s, and that file becomes
           // permanently un-uploadable for every user. Treat it as uploaded.
-          const alreadyInStorage =
-            uploadError &&
-            /already exists|duplicate|resource already/i.test(uploadError.message);
+          //
+          // storage-js reports this EITHER as a returned `error` OR as a thrown
+          // StorageApiError depending on the failure path, so both are handled.
+          // Handling only the returned form leaves the bug live — verified.
+          let uploadError: { message: string } | null = null;
+          try {
+            const { error } = await supabase.storage
+              .from('designs')
+              .uploadToSignedUrl(signResult.data.path, signResult.data.token, file);
+            uploadError = error;
+          } catch (thrown) {
+            uploadError = {
+              message: thrown instanceof Error ? thrown.message : 'Upload failed.',
+            };
+          }
 
-          if (uploadError && !alreadyInStorage) {
+          if (uploadError && !isAlreadyExists(uploadError.message)) {
             update({ phase: 'error', error: uploadError.message });
             continue;
           }
