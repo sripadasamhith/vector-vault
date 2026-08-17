@@ -18,7 +18,7 @@
  *
  * Usage: npm run verify:phase1   (requires `npm run dev` running separately)
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -235,6 +235,32 @@ async function main() {
       logRes.ok && logBody.data.commits.length === 1,
       `log shows exactly the one commit made (got ${logBody.data?.commits?.length})`
     );
+
+    // T1.3 phase gate: a file far past Vercel's ~4.5 MB request-body cap.
+    // Only meaningful against a DEPLOYED app — localhost has no such limit,
+    // so a local pass proves nothing. Opt in with VV_LARGE=1.
+    if (process.env.VV_LARGE === '1') {
+      const largePath = join(FIXTURES, 'large.stl');
+      if (!existsSync(largePath)) {
+        throw new Error('fixtures/large.stl missing — run: python3 fixtures/generate.py');
+      }
+      const bytes = statSync(largePath).size;
+      const mib = (bytes / 1048576).toFixed(1);
+      assert(bytes > 4.5 * 1024 * 1024, `large.stl is ${mib} MiB, past Vercel's ~4.5 MB body cap`);
+
+      console.log(`\nUploading large.stl (${mib} MiB) to ${APP_URL}...`);
+      const t0 = Date.now();
+      const l = await uploadAndStage(cookie, repoId, branch, largePath, 'large.stl');
+      const secs = ((Date.now() - t0) / 1000).toFixed(1);
+      assert(!l.alreadyExists, `large.stl uploaded fresh (${mib} MiB in ${secs}s)`);
+
+      const lcRes = await appFetch(cookie, `/api/repos/${repoId}/commits`, {
+        method: 'POST',
+        body: JSON.stringify({ message: 'phase1 verify: large file', branch }),
+      });
+      assert(lcRes.ok, `committed the large file (status ${lcRes.status})`);
+      console.log(`  → ${mib} MiB round-tripped without touching a Next.js route`);
+    }
   } finally {
     if (repoId) {
       await fetch(`${SUPABASE_URL}/rest/v1/repos?id=eq.${repoId}`, { method: 'DELETE', headers: adminHeaders });

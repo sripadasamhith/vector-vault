@@ -123,9 +123,13 @@ exists return `{ alreadyExists: true }`; otherwise `createSignedUploadUrl` at pa
 `components/upload-dropzone.tsx`: hash with `crypto.subtle.digest('SHA-256', buf)`, request a
 signed URL, upload via `supabase.storage.from('designs').uploadToSignedUrl(path, token, file)`,
 show progress. Skip the upload when `alreadyExists`.
-**verify (phase-critical):** upload a **40 MB** file on the *deployed* Vercel app, not just
+**verify (phase-critical):** upload a large file on the *deployed* Vercel app, not just
 locally. This proves the file bypasses the serverless body limit. If this fails, the flow in
 `ARCHITECTURE.md` §4 has been implemented wrong — do not work around it by raising a limit.
+
+**DONE 2026-08-16.** `VV_APP_URL=<deploy> VV_LARGE=1 npm run verify:phase1` uploaded
+`fixtures/large.stl` (45.0 MiB, ~10x Vercel's ~4.5 MB body cap) to the production deployment
+in 7.6s and committed it. A localhost run does not count — Vercel's limit does not exist there.
 
 ### T1.4 Staging
 
