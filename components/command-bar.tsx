@@ -78,7 +78,7 @@ export function CommandBar({ repoId, owner, slug, branch, userId }: CommandBarPr
   return (
     <div className="flex flex-col gap-2 rounded border border-white/10 bg-black p-3">
       <div className="max-h-64 overflow-y-auto">
-        <TerminalOutput entries={entries} />
+        <TerminalOutput entries={entries} owner={owner} slug={slug} />
       </div>
       <form onSubmit={handleSubmit} className="flex items-center gap-2 font-mono text-xs">
         <span className="text-zinc-500">vault&gt;</span>

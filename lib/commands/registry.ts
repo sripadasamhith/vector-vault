@@ -12,8 +12,9 @@ import { log } from './impl/log';
 import { add } from './impl/add';
 import { rm } from './impl/rm';
 import { commit } from './impl/commit';
+import { diff } from './impl/diff';
 
-const baseCommands: Command[] = [whoami, clear, status, ls, log, add, rm, commit];
+const baseCommands: Command[] = [whoami, clear, status, ls, log, add, rm, commit, diff];
 
 export const registry = new Map<string, Command>(baseCommands.map((c) => [c.name, c]));
 

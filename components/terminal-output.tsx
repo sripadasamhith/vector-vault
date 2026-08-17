@@ -7,6 +7,7 @@
 // past runs.
 import { useEffect, useState } from 'react';
 import type { CommandOutput } from '@/lib/commands/types';
+import { ChangeBadge } from './change-badge';
 
 export interface ScrollbackEntry {
   line: string;
@@ -42,7 +43,7 @@ export function clearScrollback(repoId: string) {
   window.sessionStorage.removeItem(storageKey(repoId));
 }
 
-function OutputBlock({ output }: { output: CommandOutput }) {
+function OutputBlock({ output, owner, slug }: { output: CommandOutput; owner: string; slug: string }) {
   if (output.type === 'text') {
     if (output.lines.length === 0) return null;
     return (
@@ -86,15 +87,55 @@ function OutputBlock({ output }: { output: CommandOutput }) {
     );
   }
 
-  // 'diff' — wired up in T3.3. Placeholder that doesn't lie about content.
-  return <p className="text-zinc-500">(diff output — see the compare page)</p>;
+  // 'diff' (T3.3) — a compact summary table; the synced dual 3D view lives
+  // on the compare page, linked per changed path.
+  const { result } = output;
+  if (result.changes.length === 0) {
+    return (
+      <p className="text-zinc-500">
+        no differences between {result.a.ref} and {result.b.ref}
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-zinc-500">
+        {result.a.ref} ({result.a.shortSha}) → {result.b.ref} ({result.b.shortSha})
+      </p>
+      <table className="w-full border-collapse text-left">
+        <tbody>
+          {result.changes.map((c) => (
+            <tr key={c.path}>
+              <td className="py-0.5 pr-4 text-zinc-300">{c.path}</td>
+              <td className="py-0.5 pr-4">
+                <ChangeBadge kind={c.kind} />
+              </td>
+              <td className="py-0.5">
+                <a
+                  href={`/${owner}/${slug}/compare?a=${encodeURIComponent(result.a.ref)}&b=${encodeURIComponent(result.b.ref)}&path=${encodeURIComponent(c.path)}`}
+                  className="text-sky-400 underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                >
+                  compare →
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-1 text-zinc-600">
+        Vector Vault reports that geometry changed and by how much. It does not yet show where.
+      </p>
+    </div>
+  );
 }
 
 interface TerminalOutputProps {
   entries: ScrollbackEntry[];
+  owner: string;
+  slug: string;
 }
 
-export function TerminalOutput({ entries }: TerminalOutputProps) {
+export function TerminalOutput({ entries, owner, slug }: TerminalOutputProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -110,7 +151,7 @@ export function TerminalOutput({ entries }: TerminalOutputProps) {
             vault&gt; <span className="text-zinc-200">{entry.line}</span>
           </p>
           <div className="mt-1">
-            <OutputBlock output={entry.output} />
+            <OutputBlock output={entry.output} owner={owner} slug={slug} />
           </div>
         </div>
       ))}
