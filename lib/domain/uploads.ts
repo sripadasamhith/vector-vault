@@ -55,6 +55,23 @@ export async function signUpload(
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
 
   if (error || !data) {
+    // Signing — not the PUT — is what fails when the object is already in the
+    // bucket, because a signed upload URL without upsert refuses an occupied
+    // path. That makes this the real fix site; tolerating the 409 at upload
+    // time never runs, because we never get a URL to upload to.
+    //
+    // Safe to treat as already-present: the path is the content hash, so an
+    // object at blobs/<sha256> holds exactly these bytes. The caller then
+    // skips straight to staging, which recreates the missing `blobs` row.
+    //
+    // Reachable in normal use: the browser PUTs to storage and only then calls
+    // /stage. A failed stage (dropped connection, transient error) leaves an
+    // object with no row, and since `alreadyExists` above is answered from the
+    // table, those exact bytes would otherwise become permanently
+    // un-uploadable for every user of the instance.
+    if (error && /already exists|duplicate|resource already/i.test(error.message)) {
+      return { kind: 'already_exists' };
+    }
     return { kind: 'error', message: error?.message ?? 'Failed to create signed upload URL.' };
   }
 
