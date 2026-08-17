@@ -2,9 +2,11 @@
 // commands call these typed wrappers, never fetch() directly. Seeded here
 // for T0.6's dashboard; grows as later tasks add routes.
 import type { ApiResponse } from './api/envelope';
-import type { Repo } from './domain/repos';
+import type { Repo, Branch } from './domain/repos';
 import type { Commit, CommitFile } from './domain/commits';
 import type { DiffResult } from './domain/diff';
+import type { TagWithShortSha } from './domain/tags';
+import type { SharedFile } from './domain/shares';
 
 async function request<T>(input: string, init?: RequestInit): Promise<ApiResponse<T>> {
   const res = await fetch(input, {
@@ -119,4 +121,65 @@ export function diffRefs(repoId: string, params?: { a?: string; b?: string }) {
   if (params?.b) query.set('b', params.b);
   const qs = query.toString();
   return request<{ diff: DiffResult }>(`/api/repos/${repoId}/diff${qs ? `?${qs}` : ''}`);
+}
+
+// T4.1 — branches.
+
+export function listBranches(repoId: string) {
+  return request<{ branches: Branch[] }>(`/api/repos/${repoId}/branches`);
+}
+
+export function createBranch(repoId: string, params: { name: string; from?: string }) {
+  return request<{ branch: Branch }>(`/api/repos/${repoId}/branches`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+// T4.2 — tags and revert.
+
+export function listTags(repoId: string) {
+  return request<{ tags: TagWithShortSha[] }>(`/api/repos/${repoId}/tags`);
+}
+
+export function createTag(repoId: string, params: { name: string; ref?: string; note?: string }) {
+  return request<{ tag: TagWithShortSha }>(`/api/repos/${repoId}/tags`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+export function revertToRef(repoId: string, params: { ref: string; branch?: string; message?: string }) {
+  return request<{ commitId: string; shortSha: string; branch: string }>(`/api/repos/${repoId}/revert`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+// T4.3 — merge.
+
+export type MergeResponse =
+  | { kind: 'up-to-date'; branch: string }
+  | { kind: 'fast-forward'; branch: string; shortSha: string };
+
+export function mergeBranch(repoId: string, params: { source: string; target?: string }) {
+  return request<MergeResponse>(`/api/repos/${repoId}/merge`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+}
+
+// T4.4 — share links.
+
+export function createShare(repoId: string, params: { ref?: string; expiresInSeconds?: number }) {
+  return request<{ token: string; ref: string | null; expiresAt: string | null; url: string }>(
+    `/api/repos/${repoId}/shares`,
+    { method: 'POST', body: JSON.stringify(params) }
+  );
+}
+
+export interface SharedPayload {
+  ref: string;
+  shortSha: string;
+  files: SharedFile[];
 }

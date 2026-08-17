@@ -14,6 +14,10 @@ export const commit: Command = {
     if (!message) {
       return { output: { type: 'error', message: 'usage: commit -m "<message>"' } };
     }
+    // T4.1 — a detached checkout is read-only (BUILD.md T4.1).
+    if (ctx.detached) {
+      return { output: { type: 'error', message: 'cannot commit in a detached checkout', hint: 'checkout a branch first' } };
+    }
 
     const result = await commitApi(ctx.repoId, { message, branch: ctx.branch });
 

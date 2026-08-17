@@ -15,6 +15,10 @@ export const add: Command = {
     if (!target) {
       return { output: { type: 'error', message: 'usage: add <path> | add .' } };
     }
+    // T4.1 — a detached checkout is read-only (BUILD.md T4.1).
+    if (ctx.detached) {
+      return { output: { type: 'error', message: 'cannot stage in a detached checkout', hint: 'checkout a branch first' } };
+    }
 
     const headResult = await getCommitAtRef(ctx.repoId, 'HEAD');
     if ('error' in headResult) {

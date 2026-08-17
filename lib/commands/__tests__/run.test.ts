@@ -8,7 +8,10 @@ function makeCtx(): CommandContext {
     owner: 'me',
     slug: 'test-repo',
     branch: 'main',
+    ref: 'main',
+    detached: false,
     userId: 'user-1',
+    setRef: () => {},
     navigate: () => {},
     refresh: () => {},
   };

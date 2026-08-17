@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { runCommand } from '@/lib/commands/run';
 import type { CommandContext } from '@/lib/commands/types';
+import { refCookieName } from '@/lib/refs-cookie';
 import {
   TerminalOutput,
   loadScrollback,
@@ -20,11 +21,17 @@ interface CommandBarProps {
   repoId: string;
   owner: string;
   slug: string;
+  /** The real branch write commands target — layout.tsx resolves this to
+   * the repo's default branch whenever `detached` is true. */
   branch: string;
+  /** T4.1 — what's actually checked out: equals `branch` on a normal
+   * checkout, or a tag name / short sha when `detached`. */
+  currentRef: string;
+  detached: boolean;
   userId: string;
 }
 
-export function CommandBar({ repoId, owner, slug, branch, userId }: CommandBarProps) {
+export function CommandBar({ repoId, owner, slug, branch, currentRef, detached, userId }: CommandBarProps) {
   const router = useRouter();
   const [entries, setEntries] = useState<ScrollbackEntry[]>([]);
   const [line, setLine] = useState('');
@@ -40,7 +47,17 @@ export function CommandBar({ repoId, owner, slug, branch, userId }: CommandBarPr
     owner,
     slug,
     branch,
+    ref: currentRef,
+    detached,
     userId,
+    // T4.1 — checkout's way of changing what's checked out (see the
+    // CommandContext.setRef comment in lib/commands/types.ts). A cookie so
+    // the next server render (layout.tsx / page.tsx) picks it up; max-age
+    // omitted so it's a session cookie, same lifetime as the scrollback in
+    // sessionStorage.
+    setRef: (ref) => {
+      document.cookie = `${refCookieName(repoId)}=${encodeURIComponent(ref)}; path=/`;
+    },
     navigate: (href) => router.push(href),
     refresh: () => router.refresh(),
   };

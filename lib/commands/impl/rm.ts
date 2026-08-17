@@ -11,6 +11,10 @@ export const rm: Command = {
     if (!path) {
       return { output: { type: 'error', message: 'usage: rm <path>' } };
     }
+    // T4.1 — a detached checkout is read-only (BUILD.md T4.1).
+    if (ctx.detached) {
+      return { output: { type: 'error', message: 'cannot stage in a detached checkout', hint: 'checkout a branch first' } };
+    }
 
     const result = await stageRemoval(ctx.repoId, { path, branch: ctx.branch });
     if ('error' in result) {

@@ -13,8 +13,30 @@ import { add } from './impl/add';
 import { rm } from './impl/rm';
 import { commit } from './impl/commit';
 import { diff } from './impl/diff';
+import { branch } from './impl/branch';
+import { checkout } from './impl/checkout';
+import { tag } from './impl/tag';
+import { revert } from './impl/revert';
+import { merge } from './impl/merge';
+import { share } from './impl/share';
 
-const baseCommands: Command[] = [whoami, clear, status, ls, log, add, rm, commit, diff];
+const baseCommands: Command[] = [
+  whoami,
+  clear,
+  status,
+  ls,
+  log,
+  add,
+  rm,
+  commit,
+  diff,
+  branch,
+  checkout,
+  tag,
+  revert,
+  merge,
+  share,
+];
 
 export const registry = new Map<string, Command>(baseCommands.map((c) => [c.name, c]));
 
