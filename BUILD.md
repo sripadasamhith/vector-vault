@@ -222,8 +222,17 @@ not climb without bound (Chrome devtools memory panel).
 Unparseable formats stage with `{ kind: 'unparseable' }`, store a `blob_metrics` row with null
 metrics, and the viewer shows "Preview unavailable for .step files — the file is stored and
 versioned."
-**verify (phase gate):** upload `part.sldprt`, commit it, check out the commit, share it. Every
+**verify (phase gate):** upload `part.sldprt`, commit it, check out the commit. Every
 step works; only the preview is absent, with an honest message. No console errors.
+
+(Sharing was originally listed here too — that is T4.4 and does not exist yet. Removed.)
+
+**DONE 2026-08-16, verified in a real browser against the deployment.** Uploaded
+`cube-20mm.stl` and `part.sldprt`, committed via the command bar (`[main dde4f3b] browser
+verification`), and confirmed: the cube renders and orbits; the `.sldprt` shows "Preview
+unavailable for .sldprt files — the file is stored and versioned."; no console errors; and
+the browser worker wrote `blob_metrics` of volume 8000 mm³ / area 2400 mm² / watertight —
+matching `fixtures/README.md` exactly — while the `.sldprt` row exists with null metrics.
 
 ---
 
