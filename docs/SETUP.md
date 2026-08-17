@@ -146,6 +146,7 @@ the first account's repo is invisible. That is the Phase 0 exit condition in `BU
 |---|---|
 | `redirect_uri mismatch` at GitHub | Callback URL is your domain instead of `…supabase.co/auth/v1/callback` |
 | "requested path is invalid" after login | Domain missing from Supabase → Auth → URL Configuration → Redirect URLs |
+| **Sign-in redirects to localhost from the deployed app** | The deployed URL is not in **Redirect URLs**, so Supabase discards it and falls back to **Site URL**. Note Supabase does *not* reject a bad `redirect_to` up front — it passes it to GitHub and only validates on the way back, so the failure surfaces at the very end of the flow. Fix both fields: Site URL = the deployed URL, Redirect URLs = `https://<app>.vercel.app/**` *and* `http://localhost:3000/**`. Affects magic link too. |
 | Login redirects to localhost in production | `NEXT_PUBLIC_APP_URL` still `http://localhost:3000`; fix and redeploy |
 | Supabase client undefined at runtime | A browser-read var lost its `NEXT_PUBLIC_` prefix — only prefixed vars reach the bundle |
 | Upload works locally, fails at ~4.5 MB in production | A file is being routed through a Next.js API route; it must go direct to Storage (`ARCHITECTURE.md` §4) |
