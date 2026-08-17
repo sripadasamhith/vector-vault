@@ -3,7 +3,7 @@
 // for T0.6's dashboard; grows as later tasks add routes.
 import type { ApiResponse } from './api/envelope';
 import type { Repo } from './domain/repos';
-import type { Commit } from './domain/commits';
+import type { Commit, CommitFile } from './domain/commits';
 
 async function request<T>(input: string, init?: RequestInit): Promise<ApiResponse<T>> {
   const res = await fetch(input, {
@@ -50,7 +50,7 @@ export function stageFile(
   params: {
     path: string;
     sha256: string;
-    size: number;
+    size?: number;
     branch?: string;
     metrics?: StageMetricsInput | null;
   }
@@ -83,4 +83,22 @@ export function listCommits(repoId: string, params?: { branch?: string; limit?: 
   return request<{ commits: Commit[]; branch: string }>(
     `/api/repos/${repoId}/commits${qs ? `?${qs}` : ''}`
   );
+}
+
+/** One commit + its file snapshot at a ref (HEAD / branch / tag / short sha). */
+export function getCommitAtRef(repoId: string, ref: string) {
+  return request<{ commit: Commit; files: CommitFile[] }>(
+    `/api/repos/${repoId}/commits/${encodeURIComponent(ref)}`
+  );
+}
+
+export interface StagedFileRow {
+  path: string;
+  sha256: string | null;
+  staged_at: string;
+}
+
+export function listStagedFiles(repoId: string, branch?: string) {
+  const qs = branch ? `?branch=${encodeURIComponent(branch)}` : '';
+  return request<{ staged: StagedFileRow[]; branch: string }>(`/api/repos/${repoId}/stage${qs}`);
 }

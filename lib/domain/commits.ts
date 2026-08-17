@@ -18,6 +18,10 @@ export interface Commit {
 export interface CommitFile {
   path: string;
   sha256: string | null;
+  /** From the joined blobs row. Null only if sha256 itself is null (should
+   * not happen in a committed snapshot — staged deletions never make it
+   * into commit_files). */
+  sizeBytes: number | null;
 }
 
 export type CreateCommitError =
@@ -112,12 +116,14 @@ export async function getCommitFiles(
 ): Promise<CommitFile[]> {
   const { data, error } = await supabase
     .from('commit_files')
-    .select('path, sha256')
+    .select('path, sha256, blobs(size_bytes)')
     .eq('commit_id', commitId)
     .order('path', { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as CommitFile[];
+  return ((data ?? []) as unknown as { path: string; sha256: string | null; blobs: { size_bytes: number } | null }[]).map(
+    (row) => ({ path: row.path, sha256: row.sha256, sizeBytes: row.blobs?.size_bytes ?? null })
+  );
 }
 
 /** One commit row by id, or null. Used by resolveRef (T1.6) and the

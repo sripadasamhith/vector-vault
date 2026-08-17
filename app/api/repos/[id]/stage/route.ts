@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { ok, fail } from '@/lib/api/envelope';
 import { requireRepoRole } from '@/lib/api/guard';
-import { stageFile, stageRemoval } from '@/lib/domain/staging';
+import { stageFile, stageRemoval, listStagedFiles } from '@/lib/domain/staging';
 import { getDefaultBranch } from '@/lib/domain/repos';
 
 const SHA256_RE = /^[0-9a-f]{64}$/;
@@ -28,7 +28,7 @@ const metricsSchema = z.object({
 const stageSchema = z.object({
   path: z.string().min(1).max(4096),
   sha256: z.string().regex(SHA256_RE, 'sha256 must be 64 lowercase hex characters'),
-  size: z.number().int().positive(),
+  size: z.number().int().positive().optional(),
   branch: z.string().min(1).max(255).optional(),
   metrics: metricsSchema.optional().nullable(),
 });
@@ -93,4 +93,17 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   return ok({ staged: true, path: parsed.data.path, branch, removal: true });
+}
+
+/** Lists this user's staged files on a branch — the `status` command (T1.7). */
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: repoId } = await params;
+  const auth = await requireRepoRole(repoId, 'reader');
+  if (!auth.ok) return auth.response;
+
+  const url = new URL(request.url);
+  const branch = url.searchParams.get('branch') ?? (await getDefaultBranch(auth.supabase, repoId));
+
+  const staged = await listStagedFiles(auth.supabase, { repoId, userId: auth.user.id, branch });
+  return ok({ staged, branch });
 }

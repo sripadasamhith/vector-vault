@@ -25,6 +25,11 @@ export type StageFileResult = { ok: true } | { ok: false; message: string };
  * this is called; this function only persists what it's given. `blobs` is
  * content-addressed and immutable, so its upsert never overwrites an
  * existing row's storage_path/size_bytes (ignoreDuplicates).
+ *
+ * `size` is optional: the `add <path>` command (T1.7) re-stages a path that
+ * is already part of HEAD, where the blob is already known to exist and no
+ * new size reading is available. When omitted, the blobs upsert is skipped
+ * entirely rather than risk writing a wrong/guessed size_bytes.
  */
 export async function stageFile(
   supabase: SupabaseClient,
@@ -34,17 +39,19 @@ export async function stageFile(
     branch: string;
     path: string;
     sha256: string;
-    size: number;
+    size?: number;
     metrics: StageMetricsInput | null;
   }
 ): Promise<StageFileResult> {
-  const { error: blobError } = await supabase
-    .from('blobs')
-    .upsert(
-      { sha256: params.sha256, storage_path: `blobs/${params.sha256}`, size_bytes: params.size },
-      { onConflict: 'sha256', ignoreDuplicates: true }
-    );
-  if (blobError) return { ok: false, message: blobError.message };
+  if (params.size !== undefined) {
+    const { error: blobError } = await supabase
+      .from('blobs')
+      .upsert(
+        { sha256: params.sha256, storage_path: `blobs/${params.sha256}`, size_bytes: params.size },
+        { onConflict: 'sha256', ignoreDuplicates: true }
+      );
+    if (blobError) return { ok: false, message: blobError.message };
+  }
 
   if (params.metrics) {
     const { error: metricsError } = await supabase.from('blob_metrics').upsert(
