@@ -40,18 +40,19 @@ export async function signUpload(
   }
 
   const path = `blobs/${params.sha256}`;
-  // upsert: true is safe *because* the path is the content hash — re-writing
-  // blobs/<sha256> can only ever write byte-identical content.
+  // NOTE: deliberately NOT `{ upsert: true }`.
   //
-  // It is also necessary. The `blobs` lookup above and the storage object can
-  // drift: the browser PUTs to storage and only then calls /stage, so a failed
-  // stage call (dropped connection, transient error) leaves an object with no
-  // row. Without upsert the next attempt signs a fresh upload, the PUT 409s
-  // with "The resource already exists", and those exact bytes become
-  // permanently un-uploadable for every user of the instance.
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUploadUrl(path, { upsert: true });
+  // Upsert looks like the tidy fix for the drift described in
+  // upload-dropzone.tsx (object present, `blobs` row absent), and it is safe
+  // in principle because the path is the content hash. But it turns the write
+  // into an UPDATE on storage.objects, and 0004_storage_policies.sql grants
+  // INSERT only — so it fails live with "new row violates row-level security
+  // policy". Verified against this project, not assumed.
+  //
+  // Adding an UPDATE policy would mean another hand-applied migration to buy
+  // nothing the client-side tolerance does not already handle. The 409 is
+  // absorbed in upload-dropzone.tsx instead; see the comment there.
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
 
   if (error || !data) {
     return { kind: 'error', message: error?.message ?? 'Failed to create signed upload URL.' };
