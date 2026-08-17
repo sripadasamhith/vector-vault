@@ -54,6 +54,14 @@ export async function stageFile(
   }
 
   if (params.metrics) {
+    // ignoreDuplicates, same as the blobs upsert above and for the same
+    // reason: blob_metrics is content-addressed and immutable (0003_rls.sql
+    // — "nobody may update or delete", only an insert policy exists). A
+    // plain upsert() emits INSERT ... ON CONFLICT DO UPDATE, and the UPDATE
+    // half has no policy to satisfy it, so restaging an already-known
+    // sha256 (the same file at a second path, or re-uploaded after a
+    // staged rm) would 400 with an RLS violation even though nothing about
+    // the metrics actually changed.
     const { error: metricsError } = await supabase.from('blob_metrics').upsert(
       {
         sha256: params.sha256,
@@ -66,7 +74,7 @@ export async function stageFile(
         is_watertight: params.metrics.isWatertight,
         metrics_source: 'client',
       },
-      { onConflict: 'sha256' }
+      { onConflict: 'sha256', ignoreDuplicates: true }
     );
     if (metricsError) return { ok: false, message: metricsError.message };
   }
