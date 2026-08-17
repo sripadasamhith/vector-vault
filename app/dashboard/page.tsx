@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { listOwnedRepos } from '@/lib/domain/repos';
 import { CreateRepoForm } from '@/components/create-repo-form';
@@ -32,11 +33,12 @@ export default async function DashboardPage() {
         <ul className="flex flex-col divide-y divide-black/10 dark:divide-white/10">
           {repos.map((repo) => (
             <li key={repo.id} className="flex items-center justify-between py-3">
-              <div>
-                {/* No [owner]/[repo] page yet — that's T1.8. Plain text for now. */}
-                <span className="font-medium text-black dark:text-zinc-50">{repo.name}</span>
+              <Link href={`/${repo.owner_id}/${repo.slug}`} className="group">
+                <span className="font-medium text-black group-hover:underline dark:text-zinc-50">
+                  {repo.name}
+                </span>
                 <p className="text-xs text-zinc-500 dark:text-zinc-500">{repo.slug}</p>
-              </div>
+              </Link>
               <span className="text-xs text-zinc-500 dark:text-zinc-500">
                 {repo.visibility}
               </span>

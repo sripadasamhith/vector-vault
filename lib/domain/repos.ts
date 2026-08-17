@@ -91,3 +91,45 @@ export async function listOwnedRepos(supabase: SupabaseClient, ownerId: string):
   if (error) throw new Error(error.message);
   return (data ?? []) as Repo[];
 }
+
+/**
+ * T1.8's [owner]/[repo] route segments: `owner` is the owner's user id (no
+ * separate username/profile table exists in this schema — PLAN.md §4 has no
+ * such table — so the URL segment is the uuid itself) and `repo` is the
+ * slug, unique per owner. Uses the RLS-scoped client, so a repo the caller
+ * cannot see comes back as null exactly like a nonexistent one
+ * (ARCHITECTURE.md §6/guard.ts's requireRepoRole does the same thing).
+ */
+export async function getRepoByOwnerAndSlug(
+  supabase: SupabaseClient,
+  ownerId: string,
+  slug: string
+): Promise<Repo | null> {
+  const { data, error } = await supabase
+    .from('repos')
+    .select()
+    .eq('owner_id', ownerId)
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return (data as Repo) ?? null;
+}
+
+export interface Branch {
+  repo_id: string;
+  name: string;
+  head_id: string | null;
+  created_at: string;
+}
+
+export async function listBranches(supabase: SupabaseClient, repoId: string): Promise<Branch[]> {
+  const { data, error } = await supabase
+    .from('branches')
+    .select()
+    .eq('repo_id', repoId)
+    .order('name', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Branch[];
+}

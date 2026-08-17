@@ -10,6 +10,7 @@
     "test": "vitest run",
     "check-env": "node scripts/check-env.mjs",
     "verify:phase0": "node scripts/verify-phase0.mjs",
+    "verify:phase1": "node scripts/verify-phase1.mjs",
     "verify:sql": "bash scripts/verify-sql.sh"
   },
   "dependencies": {
