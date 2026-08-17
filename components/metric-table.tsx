@@ -27,25 +27,27 @@ export function MetricTable({
       </div>
 
       {change.deltas.length > 0 ? (
-        <table className="w-full border-collapse text-left">
-          <tbody>
-            {change.deltas.map((d) => (
-              <tr key={d.label}>
-                <td className="py-1 pr-4 text-zinc-500">{d.label}</td>
-                <td className="py-1 pr-4 text-black dark:text-zinc-200">
-                  {d.a ?? '—'} → {d.b ?? '—'}
-                </td>
-                <td className={`py-1 ${d.significant ? 'text-amber-500 dark:text-amber-400' : 'text-zinc-500'}`}>
-                  {d.deltaPct === null
-                    ? d.a === d.b
-                      ? 'unchanged'
-                      : ''
-                    : `${d.deltaPct > 0 ? '+' : ''}${d.deltaPct.toFixed(2)}%`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[320px] border-collapse text-left">
+            <tbody>
+              {change.deltas.map((d) => (
+                <tr key={d.label}>
+                  <td className="py-1 pr-4 text-zinc-500">{d.label}</td>
+                  <td className="py-1 pr-4 text-black dark:text-zinc-200">
+                    {d.a ?? '—'} → {d.b ?? '—'}
+                  </td>
+                  <td className={`py-1 ${d.significant ? 'text-amber-500 dark:text-amber-400' : 'text-zinc-500'}`}>
+                    {d.deltaPct === null
+                      ? d.a === d.b
+                        ? 'unchanged'
+                        : ''
+                      : `${d.deltaPct > 0 ? '+' : ''}${d.deltaPct.toFixed(2)}%`}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <p className="text-zinc-500">No metric comparison available for this file.</p>
       )}

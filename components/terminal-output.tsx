@@ -62,28 +62,30 @@ function OutputBlock({ output, owner, slug }: { output: CommandOutput; owner: st
 
   if (output.type === 'table') {
     return (
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr>
-            {output.headers.map((h) => (
-              <th key={h} className="border-b border-white/10 pb-1 pr-4 font-medium text-zinc-500">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {output.rows.map((row, i) => (
-            <tr key={i}>
-              {row.map((cell, j) => (
-                <td key={j} className="pr-4 py-0.5 text-zinc-300">
-                  {cell}
-                </td>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[320px] border-collapse text-left">
+          <thead>
+            <tr>
+              {output.headers.map((h) => (
+                <th key={h} className="border-b border-white/10 pb-1 pr-4 font-medium text-zinc-500">
+                  {h}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {output.rows.map((row, i) => (
+              <tr key={i}>
+                {row.map((cell, j) => (
+                  <td key={j} className="pr-4 py-0.5 text-zinc-300">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   }
 
@@ -102,7 +104,8 @@ function OutputBlock({ output, owner, slug }: { output: CommandOutput; owner: st
       <p className="text-zinc-500">
         {result.a.ref} ({result.a.shortSha}) → {result.b.ref} ({result.b.shortSha})
       </p>
-      <table className="w-full border-collapse text-left">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[280px] border-collapse text-left">
         <tbody>
           {result.changes.map((c) => (
             <tr key={c.path}>
@@ -122,6 +125,7 @@ function OutputBlock({ output, owner, slug }: { output: CommandOutput; owner: st
           ))}
         </tbody>
       </table>
+      </div>
       <p className="mt-1 text-zinc-600">
         Vector Vault reports that geometry changed and by how much. It does not yet show where.
       </p>

@@ -84,7 +84,8 @@ export default function SharePage() {
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {data && (
-        <table className="w-full border-collapse text-left text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[420px] border-collapse text-left text-sm">
           <thead>
             <tr className="text-xs uppercase tracking-wide text-zinc-500">
               <th className="border-b border-black/10 pb-2 pr-4 font-medium dark:border-white/10">Path</th>
@@ -124,6 +125,7 @@ export default function SharePage() {
             )}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );
