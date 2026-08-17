@@ -271,6 +271,15 @@ volume delta.
 
 ### T3.4 The C6 test
 
+**DONE 2026-08-16, verified against production.** `VV_APP_URL=<deploy> npm run verify:phase3`
+passes all ten assertions on real fixture bytes through the real endpoint. The C6 result:
+`reexport.stl` classifies `reexported` with triangles 12 -> 192 (+1500%) marked NOT
+significant, while volume and area are identical. `TOLERANCE` was not widened.
+
+Also verified in a browser: two commits made through the command bar, the compare page renders
+both meshes, dragging the left canvas moves both cameras in sync, overlay (50%) and wireframe
+modes work, the C7 disclosure is present, no console errors.
+
 **verify (phase gate):** export the same unchanged part twice at different chord tolerances.
 Commit both. `diff` must report `re-exported, geometry equivalent` — **not** `modified`. If it
 reports `modified`, do not loosen `TOLERANCE` until you have confirmed the metrics genuinely
