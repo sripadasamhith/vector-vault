@@ -4,6 +4,7 @@
 import type { ApiResponse } from './api/envelope';
 import type { Repo } from './domain/repos';
 import type { Commit, CommitFile } from './domain/commits';
+import type { DiffResult } from './domain/diff';
 
 async function request<T>(input: string, init?: RequestInit): Promise<ApiResponse<T>> {
   const res = await fetch(input, {
@@ -107,4 +108,15 @@ export function listStagedFiles(repoId: string, branch?: string) {
  * bytes directly from Storage. */
 export function getBlobDownloadUrl(sha256: string) {
   return request<{ url: string }>(`/api/blobs/${encodeURIComponent(sha256)}/url`);
+}
+
+/** T3.2 — GET /api/repos/:id/diff?a=&b=. Both omitted: HEAD vs staged. One
+ * given: that ref vs HEAD. Both given: those two refs (lib/domain/diff.ts's
+ * defaults). */
+export function diffRefs(repoId: string, params?: { a?: string; b?: string }) {
+  const query = new URLSearchParams();
+  if (params?.a) query.set('a', params.a);
+  if (params?.b) query.set('b', params.b);
+  const qs = query.toString();
+  return request<{ diff: DiffResult }>(`/api/repos/${repoId}/diff${qs ? `?${qs}` : ''}`);
 }
