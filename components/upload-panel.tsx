@@ -7,9 +7,11 @@
 import { useRouter } from 'next/navigation';
 import { UploadDropzone, type UploadedFile } from './upload-dropzone';
 import { stageFile } from '@/lib/client-api';
+import { useToast } from './toast';
 
 export function UploadPanel({ repoId, branch }: { repoId: string; branch: string }) {
   const router = useRouter();
+  const { push } = useToast();
 
   async function handleUploaded(file: UploadedFile) {
     const result = await stageFile(repoId, {
@@ -22,8 +24,9 @@ export function UploadPanel({ repoId, branch }: { repoId: string; branch: string
     if ('error' in result) {
       // upload-dropzone already shows a per-file error state; staging
       // failures are rarer (e.g. role changed mid-upload) and surfaced the
-      // same honest way rather than silently dropped.
-      console.error('stage failed:', result.error.message);
+      // same honest way via a toast rather than a swallowed console.error
+      // (T5.3 — deferred here from T1.3).
+      push(`${file.path}: uploaded, but staging failed — ${result.error.message}`);
       return;
     }
     router.refresh();
