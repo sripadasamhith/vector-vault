@@ -1,4 +1,8 @@
 // T1.8. Server-renderable — takes plain data, no client state.
+// T2.5 added the link to the per-file viewer at blob/[...path]; owner/slug
+// are optional so callers that don't have a repo route context yet (none
+// currently) don't have to supply them.
+import Link from 'next/link';
 import type { CommitFile } from '@/lib/domain/commits';
 
 function formatSize(bytes: number | null): string {
@@ -8,7 +12,15 @@ function formatSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
-export function FileList({ files }: { files: CommitFile[] }) {
+export function FileList({
+  files,
+  owner,
+  slug,
+}: {
+  files: CommitFile[];
+  owner?: string;
+  slug?: string;
+}) {
   if (files.length === 0) {
     return <p className="text-sm text-zinc-500">No files yet.</p>;
   }
@@ -31,7 +43,21 @@ export function FileList({ files }: { files: CommitFile[] }) {
       <tbody>
         {files.map((f) => (
           <tr key={f.path}>
-            <td className="py-1.5 pr-4 font-mono text-black dark:text-zinc-100">{f.path}</td>
+            <td className="py-1.5 pr-4 font-mono text-black dark:text-zinc-100">
+              {owner && slug ? (
+                <Link
+                  href={`/${owner}/${slug}/blob/${f.path
+                    .split('/')
+                    .map((seg) => encodeURIComponent(seg))
+                    .join('/')}`}
+                  className="underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                >
+                  {f.path}
+                </Link>
+              ) : (
+                f.path
+              )}
+            </td>
             <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
               {formatSize(f.sizeBytes)}
             </td>

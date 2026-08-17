@@ -102,3 +102,9 @@ export function listStagedFiles(repoId: string, branch?: string) {
   const qs = branch ? `?branch=${encodeURIComponent(branch)}` : '';
   return request<{ staged: StagedFileRow[]; branch: string }>(`/api/repos/${repoId}/stage${qs}`);
 }
+
+/** T2.5 — a short-lived signed URL to download a content-addressed blob's
+ * bytes directly from Storage. */
+export function getBlobDownloadUrl(sha256: string) {
+  return request<{ url: string }>(`/api/blobs/${encodeURIComponent(sha256)}/url`);
+}

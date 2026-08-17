@@ -38,7 +38,7 @@ export default async function RepoFileBrowserPage({
           {head ? `at ${head.short_sha}` : 'no commits yet'}
         </h2>
         <div className="mt-2">
-          <FileList files={files} />
+          <FileList files={files} owner={owner} slug={slug} />
         </div>
       </div>
 
