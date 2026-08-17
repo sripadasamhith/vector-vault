@@ -134,7 +134,21 @@ export function UploadDropzone({ onUploaded, disabled }: UploadDropzoneProps) {
             .from('designs')
             .uploadToSignedUrl(signResult.data.path, signResult.data.token, file);
 
-          if (uploadError) {
+          // "The resource already exists" is benign here and must NOT abort.
+          // Storage paths are the content hash (blobs/<sha256>), so an object
+          // already at this path has identical bytes by definition.
+          //
+          // This state is reachable in normal use: the browser PUTs to storage
+          // and only then calls /stage. If that second call fails — dropped
+          // connection, a transient error — the object exists with no `blobs`
+          // row. `alreadyExists` is answered from the table, so the next
+          // attempt signs a fresh upload, the PUT 409s, and that file becomes
+          // permanently un-uploadable for every user. Treat it as uploaded.
+          const alreadyInStorage =
+            uploadError &&
+            /already exists|duplicate|resource already/i.test(uploadError.message);
+
+          if (uploadError && !alreadyInStorage) {
             update({ phase: 'error', error: uploadError.message });
             continue;
           }
