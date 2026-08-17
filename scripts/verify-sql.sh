@@ -19,6 +19,10 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
+# Static guard first — catches the pg-safeupdate class of bug that a plain
+# Postgres container cannot reproduce. Cheap, so run it before spinning up.
+node "$ROOT/scripts/lint-sql.mjs"
+
 cleanup
 echo "Starting $IMAGE ..."
 docker run -d --name "$CONTAINER" -e POSTGRES_PASSWORD=pw "$IMAGE" >/dev/null
