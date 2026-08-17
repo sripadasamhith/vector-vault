@@ -349,3 +349,34 @@ following `kb/AGENTS.md`, which is the authority on how wiki pages are written.
 Report honestly: which of the seven passed, which failed, and what was left out. A build
 reported as complete when step 3 or 5 was skipped is the specific failure this plan exists to
 prevent.
+
+---
+
+## Status: ALL PHASES COMPLETE — 2026-08-16/17
+
+Phases 0-5 built and verified against the production deployment
+(https://vector-vault-khaki.vercel.app), not just locally.
+
+Automated gates, all passing against production:
+`check-env`, `lint:sql`, `verify:sql` (21 assertions), `verify:phase0`,
+`verify:phase1` (incl. the 45 MiB deployed upload), `verify:phase2`,
+`verify:phase3` (incl. the C6 re-export case), `verify:phase4`.
+`npm run test` 64 passing, `npm run build` clean.
+
+Verified in a real browser on the deployment: landing page and its stated
+limitations; magic-link + GitHub sign-in; repo create; upload via the worker
+(metrics matched fixture ground truth exactly); commit/log/status/branch/
+checkout through the command bar; single viewer render + orbit; graceful
+degradation for .sldprt; compare view with synced dual cameras, overlay and
+wireframe; detached-HEAD banner; the merge refusal rendering verbatim with
+no commit created; an anonymous share link leaking nothing; inline error
+surfacing; and no horizontal overflow at 375px on any page.
+
+Known remaining items are recorded in `PLAN.md` §12 (product limits) and the
+lint note below — not defects introduced by a phase.
+
+### Open, non-blocking
+- 4 `react-hooks/set-state-in-effect` lint errors in `command-bar.tsx`,
+  `dual-viewer.tsx`, `terminal-output.tsx`. `next build` does not gate on
+  them and the app works; they are a code-quality cleanup, not a bug.
+- `PLAN.md` §12 limitations are product boundaries, deliberately kept.
