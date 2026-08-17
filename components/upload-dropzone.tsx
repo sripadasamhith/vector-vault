@@ -18,7 +18,9 @@
 
 import { useCallback, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { signUpload } from '@/lib/client-api';
+import { signUpload, type StageMetricsInput } from '@/lib/client-api';
+import { useMeshWorker } from '@/lib/mesh/useMeshWorker';
+import type { MeshWorkerResponse } from '@/lib/mesh/worker';
 
 export type UploadPhase =
   | 'hashing'
@@ -41,14 +43,40 @@ export interface UploadedFile {
   sha256: string;
   size: number;
   filename: string;
+  /** Computed off the main thread by the T2.4 mesh worker. Null when the
+   * format has no parser (C4) or the bytes were corrupt — the file still
+   * uploads either way. */
+  metrics: StageMetricsInput | null;
 }
 
-async function hashFile(file: File): Promise<string> {
-  const buf = await file.arrayBuffer();
-  const digest = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(digest))
+function bufferToHex(buf: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+function toStageMetrics(response: MeshWorkerResponse): StageMetricsInput {
+  if (response.kind === 'parsed') {
+    const m = response.metrics;
+    return {
+      format: m.format,
+      triangleCount: m.triangleCount,
+      volumeMm3: m.volumeMm3,
+      surfaceAreaMm2: m.surfaceAreaMm2,
+      bbox: m.bbox,
+      centroid: m.centroid,
+      isWatertight: m.isWatertight,
+    };
+  }
+  return {
+    format: response.format,
+    triangleCount: null,
+    volumeMm3: null,
+    surfaceAreaMm2: null,
+    bbox: null,
+    centroid: null,
+    isWatertight: null,
+  };
 }
 
 interface UploadDropzoneProps {
@@ -61,6 +89,7 @@ interface UploadDropzoneProps {
 export function UploadDropzone({ onUploaded, disabled }: UploadDropzoneProps) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const { parseBuffer } = useMeshWorker();
 
   const handleFiles = useCallback(
     async (fileList: FileList | File[]) => {
@@ -73,8 +102,18 @@ export function UploadDropzone({ onUploaded, disabled }: UploadDropzoneProps) {
           setItems((prev) => prev.map((it) => (it.file === file ? { ...it, ...patch } : it)));
 
         try {
-          const sha256 = await hashFile(file);
+          const buf = await file.arrayBuffer();
+          const digest = await crypto.subtle.digest('SHA-256', buf);
+          const sha256 = bufferToHex(digest);
           update({ phase: 'requesting-url', sha256 });
+
+          // Off the main thread (T2.4): hand the already-read buffer to the
+          // Web Worker for parsing + metrics while the sign/upload calls
+          // below are in flight. `buf` is transferred, not copied, and must
+          // not be touched again after this call.
+          const metricsPromise = parseBuffer(file.name, buf).catch(
+            (): MeshWorkerResponse => ({ id: '', kind: 'unparseable', format: 'unknown' })
+          );
 
           const signResult = await signUpload({ sha256, filename: file.name, size: file.size });
           if ('error' in signResult) {
@@ -84,7 +123,8 @@ export function UploadDropzone({ onUploaded, disabled }: UploadDropzoneProps) {
 
           if (signResult.data.alreadyExists) {
             update({ phase: 'skipped-duplicate' });
-            onUploaded({ path, sha256, size: file.size, filename: file.name });
+            const metrics = toStageMetrics(await metricsPromise);
+            onUploaded({ path, sha256, size: file.size, filename: file.name, metrics });
             continue;
           }
 
@@ -100,13 +140,14 @@ export function UploadDropzone({ onUploaded, disabled }: UploadDropzoneProps) {
           }
 
           update({ phase: 'done' });
-          onUploaded({ path, sha256, size: file.size, filename: file.name });
+          const metrics = toStageMetrics(await metricsPromise);
+          onUploaded({ path, sha256, size: file.size, filename: file.name, metrics });
         } catch (err) {
           update({ phase: 'error', error: err instanceof Error ? err.message : 'Upload failed.' });
         }
       }
     },
-    [onUploaded]
+    [onUploaded, parseBuffer]
   );
 
   return (

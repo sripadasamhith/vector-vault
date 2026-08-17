@@ -17,6 +17,7 @@ export function UploadPanel({ repoId, branch }: { repoId: string; branch: string
       sha256: file.sha256,
       size: file.size,
       branch,
+      metrics: file.metrics,
     });
     if ('error' in result) {
       // upload-dropzone already shows a per-file error state; staging
