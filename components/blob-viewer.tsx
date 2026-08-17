@@ -21,7 +21,7 @@ const Viewer = dynamic(() => import('./viewer').then((m) => m.Viewer), { ssr: fa
 type LoadState =
   | { phase: 'loading' }
   | { phase: 'error'; message: string }
-  | { phase: 'unparseable'; format: string }
+  | { phase: 'unparseable'; format: string; downloadUrl: string | null }
   | { phase: 'ready'; positions: Float32Array; bbox: MeshMetrics['bbox'] };
 
 function extensionOf(filename: string): string {
@@ -59,7 +59,7 @@ export function BlobViewer({ sha256, filename }: { sha256: string; filename: str
       if (response.kind === 'parsed') {
         setState({ phase: 'ready', positions: response.positions, bbox: response.metrics.bbox });
       } else {
-        setState({ phase: 'unparseable', format: response.format });
+        setState({ phase: 'unparseable', format: response.format, downloadUrl: urlResult.data.url });
       }
     })().catch((err: unknown) => {
       if (!cancelled) {
@@ -88,7 +88,16 @@ export function BlobViewer({ sha256, filename }: { sha256: string; filename: str
     return (
       <p className="text-sm text-zinc-500">
         Preview unavailable for {ext ? `.${ext}` : 'this'} files — the file is stored and
-        versioned.
+        versioned, just not rendered here.{' '}
+        {state.downloadUrl && (
+          <a
+            href={state.downloadUrl}
+            className="text-sky-600 underline decoration-dotted underline-offset-2 hover:decoration-solid dark:text-sky-400"
+          >
+            Download it
+          </a>
+        )}{' '}
+        to view it in its native application.
       </p>
     );
   }

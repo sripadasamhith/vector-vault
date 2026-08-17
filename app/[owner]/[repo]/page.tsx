@@ -44,10 +44,20 @@ export default async function RepoFileBrowserPage({
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-          {commit ? `at ${ref === 'HEAD' ? '' : `${ref} `}${commit.short_sha}` : 'no commits yet'}
+          {commit
+            ? `at ${ref === 'HEAD' ? '' : `${ref} `}${commit.short_sha}`
+            : 'No commits yet'}
         </h2>
         <div className="mt-2">
-          <FileList files={files} owner={owner} slug={slug} />
+          {commit ? (
+            <FileList files={files} owner={owner} slug={slug} />
+          ) : (
+            <p className="text-sm text-zinc-500">
+              This repo is empty. Drag a file into Upload below, then run{' '}
+              <code className="font-mono">commit -m &quot;initial&quot;</code> in the command
+              bar to make your first commit.
+            </p>
+          )}
         </div>
       </div>
 

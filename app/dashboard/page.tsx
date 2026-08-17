@@ -27,7 +27,8 @@ export default async function DashboardPage() {
 
       {repos.length === 0 ? (
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          No repos yet. Create one above to get started.
+          No repos yet. Pick a slug above and click &quot;Create repo&quot; — you can upload
+          your first CAD file right after.
         </p>
       ) : (
         <ul className="flex flex-col divide-y divide-black/10 dark:divide-white/10">

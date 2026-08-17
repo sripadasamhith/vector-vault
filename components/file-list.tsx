@@ -22,51 +22,58 @@ export function FileList({
   slug?: string;
 }) {
   if (files.length === 0) {
-    return <p className="text-sm text-zinc-500">No files yet.</p>;
+    return (
+      <p className="text-sm text-zinc-500">
+        No files at this ref yet. Drag a file into Upload below, then run{' '}
+        <code className="font-mono">commit -m &quot;...&quot;</code> to add it.
+      </p>
+    );
   }
 
   return (
-    <table className="w-full border-collapse text-left text-sm">
-      <thead>
-        <tr className="text-xs uppercase tracking-wide text-zinc-500">
-          <th className="border-b border-black/10 pb-2 pr-4 font-medium dark:border-white/10">
-            Path
-          </th>
-          <th className="border-b border-black/10 pb-2 pr-4 font-medium dark:border-white/10">
-            Size
-          </th>
-          <th className="border-b border-black/10 pb-2 font-medium dark:border-white/10">
-            SHA
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {files.map((f) => (
-          <tr key={f.path}>
-            <td className="py-1.5 pr-4 font-mono text-black dark:text-zinc-100">
-              {owner && slug ? (
-                <Link
-                  href={`/${owner}/${slug}/blob/${f.path
-                    .split('/')
-                    .map((seg) => encodeURIComponent(seg))
-                    .join('/')}`}
-                  className="underline decoration-dotted underline-offset-2 hover:decoration-solid"
-                >
-                  {f.path}
-                </Link>
-              ) : (
-                f.path
-              )}
-            </td>
-            <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
-              {formatSize(f.sizeBytes)}
-            </td>
-            <td className="py-1.5 font-mono text-xs text-zinc-500">
-              {(f.sha256 ?? '').slice(0, 7)}
-            </td>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[420px] border-collapse text-left text-sm">
+        <thead>
+          <tr className="text-xs uppercase tracking-wide text-zinc-500">
+            <th className="border-b border-black/10 pb-2 pr-4 font-medium dark:border-white/10">
+              Path
+            </th>
+            <th className="border-b border-black/10 pb-2 pr-4 font-medium dark:border-white/10">
+              Size
+            </th>
+            <th className="border-b border-black/10 pb-2 font-medium dark:border-white/10">
+              SHA
+            </th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {files.map((f) => (
+            <tr key={f.path}>
+              <td className="py-1.5 pr-4 font-mono text-black dark:text-zinc-100">
+                {owner && slug ? (
+                  <Link
+                    href={`/${owner}/${slug}/blob/${f.path
+                      .split('/')
+                      .map((seg) => encodeURIComponent(seg))
+                      .join('/')}`}
+                    className="underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                  >
+                    {f.path}
+                  </Link>
+                ) : (
+                  f.path
+                )}
+              </td>
+              <td className="py-1.5 pr-4 text-zinc-600 dark:text-zinc-400">
+                {formatSize(f.sizeBytes)}
+              </td>
+              <td className="py-1.5 font-mono text-xs text-zinc-500">
+                {(f.sha256 ?? '').slice(0, 7)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
